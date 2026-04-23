@@ -1,0 +1,33 @@
+The goal of this project  is to create an esolang bc I really like them.
+The base principle is that every instruction has a timestamp at which it will be executed.
+The whole program run on a simulated clock.
+
+Instruction set
+SUB A B → 4  
+    B = A - B
+MOV A B → 2  
+    B = A
+NEG A B → 3  
+    B = -A
+PRINT A → 2  
+    prints A
+INPUT A → 2  
+    reads input into A
+
+Operands:
+- `@x` refers to variable `x`
+- `x` without `@` is treated as a literal
+- Values are converted to integers when possible at runtime
+
+Timestamp conflicts:
+If multiple instructions share the same timestamp:
+- Let I1 be the instruction with the smallest line number
+- Let I2 be the instruction with the largest line number
+Execute I1 first.
+If the result of I1 is negative:
+    Execute I2
+    Set the global time to the result of I2 (jump)
+Otherwise:
+    I2 is ignored
+
+/!\ to make it more fun program lines must be spaced in timestamp space by at least 6 units.

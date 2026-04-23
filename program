@@ -1,0 +1,6 @@
+MOV -5 @count 1
+NEG @count @count 7
+ADD 1 @count 23
+PRINT @count 0 10
+NEG @count @count 16
+MOV 7 @jump 23
