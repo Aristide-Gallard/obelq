@@ -1,115 +1,103 @@
 import sys
 
+file = "./examples/calculator.obelq"
+DEBUG = False
+totalTime = 100
 
-def load_program(filename):
-    prog = []
-    f = open(filename, "r")
 
-    lid = 0
+def load_instrs():
+    instrList = []
+    with open(file, "r") as f:
+        lid = 0  # line id
 
-    for line in f:
-        p = line.strip().split()
-        if not p:
-            continue
+        for line in f:
+            p = line.strip().split()  # remove spaces and split in lists
 
-        op = p[0]
-        a = p[1]
-        b = p[2]
+            if not p:
+                continue  # to be able to have empty lines
+
+            operation = p[0]
+            a = p[1]
+            b = p[2]
+            try:
+                timeS = int(p[3])  # timestamp
+                if lid > 0:
+                    if abs(timeS - instrList[-1][0]) < 6:  # 6 dif rule
+                        print(f"spacing violation at line {lid}")
+                        sys.exit()
+            except (ValueError, TypeError):
+                timeS = p[3]  # variable timestamp
+
+            instrList.append([timeS, lid, operation, a, b])
+            lid += 1
+    return instrList
+
+
+def add(A, b): return A + try_read(b), 4
+def sub(A, b): return A - try_read(b), 4
+def mov(A, _): return A, 2
+def neg(A, _): return -A, 3
+def inp(_, __):  return input(), 2
+# to add another instr add it here and in the dictionary
+ops = {
+    "ADD": add,
+    "SUB": sub,
+    "MOV": mov,
+    "NEG": neg,
+    "INPUT": inp
+}
+
+def try_read(var):
+    if isinstance(var, str) and var.startswith("@"):
         try:
-            t = int(p[3])
-            if lid > 0:
-                if abs(t - prog[-1][0]) < 6:
-                    print(f"{t} : {prog[-1][0]}")
-                    print(f"spacing violation at line {lid}")
-                    sys.exit()
-        except:
-            t = int(p[3])
-
-        prog.append([t, lid, op, a, b])
-        lid += 1
-
-    f.close()
-    return prog
-
-
-def key(x):
-    if x.startswith("@"):
-        return x[1:]
-    return x
-
-
-def val(x):
-    if isinstance(x, str) and x.startswith("@"):
-        try:
-            return int(mem.get(x[1:], 0))
-        except:
-            return mem.get(x[1:], 0)
+            return int(mem.get(var[1:], 0))
+        except ValueError:
+            return mem.get(var[1:], 0)
     try:
-        return int(x)
-    except:
-        return x
+        return int(var)
+    except ValueError:
+        return var
 
 
 def exec_ins(op, a, b):
-    A = val(a)
-    B = key(b)
+    val_a = try_read(a)
 
-    if op == "ADD":
-        mem[B] = A + val(b)
-        return mem[B], 4
-    if op == "SUB":
-        mem[B] = A - val(b)
-        return mem[B], 4
-    if op == "MOV":
-        mem[B] = A
-        return mem[B], 2
-    if op == "NEG":
-        mem[B] = -A
-        return mem[B], 3
-    if op == "INPUT":
-        mem[B] = input()
-        return mem[B], 2
     if op == "PRINT":
-        print(A)
-        return A, 2
-    
-    return 0, 0
+        print(val_a)
+        return val_a, 2
+
+    res, dur = ops[op](val_a, b) # get result and duration of instruction
+    if isinstance(b, str) and b.startswith("@"):
+        mem[b[1:]] = res # if b is memory variable then store data
+    return res, dur
 
 
 mem = {}
-totalTime = 100
 time = 1
-DEBUG = False
+useless = 0
 
-prog = load_program("program")
+instrs = load_instrs()
 
 while time < totalTime:
-    todo = []
+    instr = []
     toadd = 0
-    for i in range(len(prog)):
-        if val(prog[i][0]) == time:
-            todo.append(prog[i])
-            if len(todo) == 1:
-                try:
-                    res = exec_ins(todo[0][2], todo[0][3], todo[0][4])
-                    toadd += res[1]
-                except:
-                    print(f"error with {prog[i]}")
-                    sys.exit()
-            elif len(todo) >= 2:
+    for i in range(len(instrs)):
+        if try_read(instrs[i][0]) == time:
+            instr.append(instrs[i])
+            if len(instr) == 1:
+                res = exec_ins(instr[0][2], instr[0][3], instr[0][4])
+                toadd += res[1]
+
+            elif len(instr) >= 2:
                 if res[0] < 0:
-                    try:
-                        res = exec_ins(todo[1][2], todo[1][3], todo[1][4])
-                        toadd = 0
-                        time = res[0]
-                    except:
-                        print(
-                            f"error at line {prog[i][1]} with {todo[1][2]} {key(todo[1][3])} {key(todo[1][4])}"
-                        )
-                        sys.exit()
+                    res = exec_ins(instr[1][2], instr[1][3], instr[1][4])
+                    toadd = 0
+                    time = res[0]
                 break
     if DEBUG:
-        print(f"time : {time} => {todo}")
+        print(f"time : {time} => {instr}")
     time += toadd
-    if len(todo) == 0:
+    if len(instr) == 0:
         time += 1
+        useless += 1
+print(f"you ran {useless} useless iteration")

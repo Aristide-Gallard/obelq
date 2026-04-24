@@ -5,18 +5,20 @@ The whole program run on a simulated clock.
 Instruction set
 SUB A B → 4  
     B = A - B
+ADD A B → 4
+    A = A + B
 MOV A B → 2  
     B = A
 NEG A B → 3  
     B = -A
-PRINT A → 2  
+PRINT A B → 2  
     prints A
-INPUT A → 2  
-    reads input into A
+INPUT A B → 2  
+    reads input into B
 
 Operands:
 - `@x` refers to variable `x`
-- `x` without `@` is treated as a literal
+- `x` without `@` is treated as a literal except when it's in the position B
 - Values are converted to integers when possible at runtime
 
 Timestamp conflicts:
